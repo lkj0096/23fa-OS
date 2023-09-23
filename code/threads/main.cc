@@ -75,6 +75,8 @@ main(int argc, char **argv)
     
     DEBUG(dbgThread, "Entering main");
 
+    DEBUG(dbgHW1, "[DEBUG]B11015037");
+
     kernel = new KernelType(argc, argv);
     kernel->Initialize();
     

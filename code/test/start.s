@@ -138,6 +138,71 @@ PrintInt:
 	j       $31
 	.end    PrintInt
 
+	.globl  Example
+	.ent    Example
+Example:
+	addiu   $2,$0,SC_Example
+	syscall
+	j       $31
+	.end    Example
+
+	.globl  Sleep
+	.ent    Sleep
+Sleep:
+	addiu   $2,$0,SC_Sleep
+	syscall
+	j       $31
+	.end    Sleep
+
+	.globl  Add
+	.ent    Add
+Add:
+	addiu   $2,$0,SC_Add
+	syscall
+	j       $31
+	.end Add
+
+	.globl  Sub
+	.ent    Sub
+Sub:
+	addiu   $2,$0,SC_Sub
+	syscall
+	j       $31
+	.end Add
+
+	.globl  Mul
+	.ent    Mul
+Mul:
+	addiu   $2,$0,SC_Mul
+	syscall
+	j       $31
+	.end Mul	
+
+	.globl  Div
+	.ent    Div
+Div:
+	addiu   $2,$0,SC_Div
+	syscall
+	j       $31
+	.end Div
+
+	.globl  Mod
+	.ent    Mod
+Mod:
+	addiu   $2,$0,SC_Mod
+	syscall
+	j       $31
+	.end Mod
+
+	.globl  Print
+	.ent    Print
+Print:
+	addiu   $2,$0,SC_PtrStr
+	syscall
+	j       $31
+	.end Print
+
+
 /* dummy function to keep gcc happy */
         .globl  __main
         .ent    __main

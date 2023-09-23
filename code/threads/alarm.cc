@@ -51,8 +51,8 @@ Alarm::CallBack()
 {
     Interrupt *interrupt = kernel->interrupt;
     MachineStatus status = interrupt->getStatus();
-    
-    if (status == IdleMode) {	// is it time to quit?
+    bool woken = sleeper.wakeUp();
+    if (status == IdleMode && !woken && sleeper.isEmpty()) {	// is it time to quit?
         if (!interrupt->AnyFutureInterrupts()) {
 	    timer->Disable();	// turn off the timer
 	}
@@ -61,3 +61,10 @@ Alarm::CallBack()
     }
 }
 
+void Alarm::WaitUntil(int x) {
+    IntStatus oldLevel = kernel->interrupt->SetLevel(IntOff);
+    Thread* t = kernel->currentThread;
+    cout << "Alarm::WaitUntil go sleep" << endl;
+    sleeper.napTime(t,x);
+    kernel->interrupt->SetLevel(oldLevel);
+}
