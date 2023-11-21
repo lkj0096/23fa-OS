@@ -20,8 +20,7 @@
 //		occur at random, instead of fixed, intervals.
 //----------------------------------------------------------------------
 
-Alarm::Alarm(bool doRandom)
-{
+Alarm::Alarm(bool doRandom) {
     timer = new Timer(doRandom, this);
 }
 
@@ -46,21 +45,20 @@ Alarm::Alarm(bool doRandom)
 //	interrupts.  In this case, we can safely halt.
 //----------------------------------------------------------------------
 
-void 
-Alarm::CallBack() 
-{
+void Alarm::CallBack() {
     Interrupt *interrupt = kernel->interrupt;
     MachineStatus status = interrupt->getStatus();
+
     bool woken = sleeper.wakeUp();
+    kernel->currentThread->setPriority(kernel->currentThread->getPriority() - 1);
     if (status == IdleMode && !woken && sleeper.isEmpty()) {	// is it time to quit?
         if (!interrupt->AnyFutureInterrupts()) {
-	    timer->Disable();	// turn off the timer
-	}
+	        timer->Disable();	// turn off the timer
+        }
     } else {			// there's someone to preempt
-	if(kernel->scheduler->getSchedulerType() == RR ||
-            kernel->scheduler->getSchedulerType() == Priority ) {
-		interrupt->YieldOnReturn();
-	}
+        if(kernel->scheduler->getSchedulerType() == RR) {
+            interrupt->YieldOnReturn();
+        }
     }
 }
 

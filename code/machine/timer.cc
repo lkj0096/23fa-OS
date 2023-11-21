@@ -35,8 +35,7 @@
 //      "toCall" is the interrupt handler to call when the timer expires.
 //----------------------------------------------------------------------
 
-Timer::Timer(bool doRandom, CallBackObj *toCall)
-{
+Timer::Timer(bool doRandom, CallBackObj *toCall) {
     randomize = doRandom;
     callPeriodically = toCall;
     disable = FALSE;
@@ -50,8 +49,7 @@ Timer::Timer(bool doRandom, CallBackObj *toCall)
 //	interrupt handler.
 //----------------------------------------------------------------------
 void 
-Timer::CallBack() 
-{
+Timer::CallBack() {
     // invoke the Nachos interrupt handler for this device
     callPeriodically->CallBack();
     
@@ -66,16 +64,14 @@ Timer::CallBack()
 //	fixed or random.
 //----------------------------------------------------------------------
 
-void
-Timer::SetInterrupt() 
-{
+void Timer::SetInterrupt() {
     if (!disable) {
-       int delay = TimerTicks;
+        int delay = kernel->stats->schdulerTicks;
     
-       if (randomize) {
-	     delay = 1 + (RandomNumber() % (TimerTicks * 2));
+        if (randomize) {
+	        delay = 1 + (RandomNumber() % (kernel->stats->schdulerTicks * 2));
         }
-       // schedule the next timer device interrupt
-       kernel->interrupt->Schedule(this, delay, TimerInt);
+        // schedule the next timer device interrupt
+        kernel->interrupt->Schedule(this, delay, TimerInt);
     }
 }

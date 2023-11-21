@@ -16,9 +16,9 @@
 // 	Initialize performance metrics to zero, at system startup.
 //----------------------------------------------------------------------
 
-Statistics::Statistics()
-{
+Statistics::Statistics() {
     totalTicks = idleTicks = systemTicks = userTicks = 0;
+    schdulerTicks = 100;
     numDiskReads = numDiskWrites = 0;
     numConsoleCharsRead = numConsoleCharsWritten = 0;
     numPageFaults = numPacketsSent = numPacketsRecvd = 0;
@@ -31,8 +31,7 @@ Statistics::Statistics()
 //----------------------------------------------------------------------
 
 void
-Statistics::Print()
-{
+Statistics::Print() {
     cout << "Ticks: total " << totalTicks << ", idle " << idleTicks;
 		cout << ", system " << systemTicks << ", user " << userTicks <<"\n";
     cout << "Disk I/O: reads " << numDiskReads;

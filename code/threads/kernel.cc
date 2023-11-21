@@ -15,6 +15,7 @@
 #include "libtest.h"
 #include "elevatortest.h"
 #include "string.h"
+#include "stdlib.h"
 
 //----------------------------------------------------------------------
 // ThreadedKernel::ThreadedKernel
@@ -22,10 +23,11 @@
 //	for the initialization (see also comments in main.cc)  
 //----------------------------------------------------------------------
 
-ThreadedKernel::ThreadedKernel(int argc, char **argv)
-{
+ThreadedKernel::ThreadedKernel(int argc, char **argv) {
     randomSlice = FALSE; 
     type = RR;
+    
+    this->SchedulerTickTime = 100;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-rs") == 0) {
@@ -42,11 +44,17 @@ ThreadedKernel::ThreadedKernel(int argc, char **argv)
             } else if (strcmp(argv[i + 1], "RR") == 0){
                 type = RR;
             } else if (strcmp(argv[i + 1], "FCFS") == 0) {
-                type = FIFO;
+                type = FCFS;
             } else if (strcmp(argv[i + 1], "PRIORITY") == 0) {
                 type = Priority;
             } else if (strcmp(argv[i + 1], "SJF") == 0) {
                 type = SJF;
+            }
+        } else if(strcmp(argv[i], "-timertick") == 0){
+            this->SchedulerTickTime = atoi(argv[i + 1]);
+            if ( 41 <= this->SchedulerTickTime  && this->SchedulerTickTime <= 50){
+                cout << "cannot set ticktime in ragne[41~50], set to 51" << endl;
+                this->SchedulerTickTime = 51;
             }
         }
     }
@@ -60,9 +68,10 @@ ThreadedKernel::ThreadedKernel(int argc, char **argv)
 //----------------------------------------------------------------------
 
 void
-ThreadedKernel::Initialize()
-{
+ThreadedKernel::Initialize() {
     stats = new Statistics();		// collect statistics
+    kernel->stats->schdulerTicks = this->SchedulerTickTime;
+
     interrupt = new Interrupt;		// start up interrupt handling
     scheduler = new Scheduler(type);	// initialize the ready queue
     alarm = new Alarm(randomSlice);	// start up time slicing
@@ -81,8 +90,7 @@ ThreadedKernel::Initialize()
 // 	Nachos is halting.  De-allocate global data structures.
 //----------------------------------------------------------------------
 
-ThreadedKernel::~ThreadedKernel()
-{
+ThreadedKernel::~ThreadedKernel() {
     delete alarm;
     delete scheduler;
     delete interrupt;
@@ -99,8 +107,7 @@ ThreadedKernel::~ThreadedKernel()
 //----------------------------------------------------------------------
 
 void
-ThreadedKernel::Run()
-{
+ThreadedKernel::Run() {
     // NOTE: if the procedure "main" returns, then the program "nachos"
     // will exit (as any other normal program would).  But there may be
     // other threads on the ready list (started in SelfTest).  

@@ -5,21 +5,27 @@
 MAKE = make
 LPR = lpr
 
-all: 
-	cd threads; $(MAKE) depend
-	cd threads; $(MAKE) nachos
-	cd userprog; $(MAKE) depend 
-	cd userprog; $(MAKE) nachos 
-	cd filesys; $(MAKE) depend
-	cd filesys; $(MAKE) nachos 
-	cd network; $(MAKE) depend
-	cd network; $(MAKE) nachos 
-	cd bin; $(MAKE) all
-	cd test; $(MAKE) all
+all: threads userprog filesys network bin test
+
+.PHONY: threads userprog filesys network bin test
+
+threads: 
+	$(MAKE) -C threads depend nachos
+userprog:
+	$(MAKE) -C userprog depend nachos
+filesys:
+	$(MAKE) -C filesys depend nachos
+network:
+	$(MAKE) -C network depend nachos
+bin:	
+	$(MAKE) -C bin all
+test:	
+	$(MAKE) -C test all
 
 # don't delete executables in "test" in case there is no cross-compiler
 clean:
-	-/bin/csh -c "rm -f */{core,nachos,DISK,*.o,swtch.s} test/{*.coff} bin/{coff2flat,coff2noff,disasm} "
+	/bin/csh -c "rm -f */{core,nachos,DISK,*.o,swtch.s} test/{*.coff} bin/{coff2flat,coff2noff,disasm} "
+	$(MAKE) -C test clean
 
 # delete executables in "test"
 distclean: clean
@@ -35,5 +41,3 @@ print:
 	/bin/csh -c "$(LPR) bin/noff.h bin/coff.h bin/coff2noff.c"
 	/bin/csh -c "$(LPR) test/*.h test/*.c test/*.s"
 
-test:
-	cd test; $(MAKE) all

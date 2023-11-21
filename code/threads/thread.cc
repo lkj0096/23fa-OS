@@ -33,16 +33,15 @@ const int STACK_FENCEPOST = 0xdedbeef;
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
-Thread::Thread(char* threadName)
-{
+Thread::Thread(char* threadName) {
     name = threadName;
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
     for (int i = 0; i < MachineStateSize; i++) {
-	machineState[i] = NULL;		// not strictly necessary, since
-					// new thread ignores contents 
-					// of machine registers
+	    machineState[i] = NULL;		// not strictly necessary, since
+                                    // new thread ignores contents 
+                                    // of machine registers
     }
 #ifdef USER_PROGRAM
     space = NULL;
@@ -61,8 +60,7 @@ Thread::Thread(char* threadName)
 //      as part of starting up Nachos.
 //----------------------------------------------------------------------
 
-Thread::~Thread()
-{
+Thread::~Thread() {
     DEBUG(dbgThread, "Deleting thread: " << name);
 
     ASSERT(this != kernel->currentThread);
@@ -91,8 +89,7 @@ Thread::~Thread()
 //----------------------------------------------------------------------
 
 void 
-Thread::Fork(VoidFunctionPtr func, void *arg)
-{
+Thread::Fork(VoidFunctionPtr func, void *arg) {
     Interrupt *interrupt = kernel->interrupt;
     Scheduler *scheduler = kernel->scheduler;
     IntStatus oldLevel;
@@ -123,8 +120,7 @@ Thread::Fork(VoidFunctionPtr func, void *arg)
 //----------------------------------------------------------------------
 
 void
-Thread::CheckOverflow()
-{
+Thread::CheckOverflow() {
     if (stack != NULL) {
 #ifdef HPUX			// Stacks grow upward on the Snakes
 	ASSERT(stack[StackSize - 1] == STACK_FENCEPOST);
@@ -146,8 +142,7 @@ Thread::CheckOverflow()
 //----------------------------------------------------------------------
 
 void
-Thread::Begin ()
-{
+Thread::Begin () {
     ASSERT(this == kernel->currentThread);
     DEBUG(dbgThread, "Beginning thread: " << name);
     
@@ -171,8 +166,7 @@ Thread::Begin ()
 
 //
 void
-Thread::Finish ()
-{
+Thread::Finish () {
     (void) kernel->interrupt->SetLevel(IntOff);		
     ASSERT(this == kernel->currentThread);
     
@@ -201,8 +195,7 @@ Thread::Finish ()
 //----------------------------------------------------------------------
 
 void
-Thread::Yield ()
-{
+Thread::Yield () {
     Thread *nextThread;
     IntStatus oldLevel = kernel->interrupt->SetLevel(IntOff);
     
@@ -212,8 +205,8 @@ Thread::Yield ()
     
     nextThread = kernel->scheduler->FindNextToRun();
     if (nextThread != NULL) {
-	kernel->scheduler->ReadyToRun(this);
-	kernel->scheduler->Run(nextThread, FALSE);
+        kernel->scheduler->ReadyToRun(this);
+        kernel->scheduler->Run(nextThread, FALSE);
     }
     (void) kernel->interrupt->SetLevel(oldLevel);
 }
@@ -239,8 +232,7 @@ Thread::Yield ()
 //	off the ready list, and switching to it.
 //----------------------------------------------------------------------
 void
-Thread::Sleep (bool finishing)
-{
+Thread::Sleep (bool finishing) {
     Thread *nextThread;
     
     ASSERT(this == kernel->currentThread);
@@ -264,7 +256,7 @@ Thread::Sleep (bool finishing)
 //	member function.
 //----------------------------------------------------------------------
 
-static void ThreadFinish()    { kernel->currentThread->Finish(); }
+static void ThreadFinish() { kernel->currentThread->Finish(); }
 static void ThreadBegin() { kernel->currentThread->Begin(); }
 void ThreadPrint(Thread *t) { t->Print(); }
 
@@ -277,8 +269,7 @@ void ThreadPrint(Thread *t) { t->Print(); }
 //----------------------------------------------------------------------
 
 static void *
-PLabelToAddr(void *plabel)
-{
+PLabelToAddr(void *plabel) {
     int funcPtr = (int) plabel;
 
     if (funcPtr & 0x02) {
@@ -305,8 +296,7 @@ PLabelToAddr(void *plabel)
 //----------------------------------------------------------------------
 
 void
-Thread::StackAllocate (VoidFunctionPtr func, void *arg)
-{
+Thread::StackAllocate (VoidFunctionPtr func, void *arg) {
     stack = (int *) AllocBoundedArray(StackSize * sizeof(int));
 
 #ifdef PARISC
@@ -376,8 +366,7 @@ Thread::StackAllocate (VoidFunctionPtr func, void *arg)
 //----------------------------------------------------------------------
 
 void
-Thread::SaveUserState()
-{
+Thread::SaveUserState() {
     for (int i = 0; i < NumTotalRegs; i++)
 	userRegisters[i] = kernel->machine->ReadRegister(i);
 }
@@ -392,8 +381,7 @@ Thread::SaveUserState()
 //----------------------------------------------------------------------
 
 void
-Thread::RestoreUserState()
-{
+Thread::RestoreUserState() {
     for (int i = 0; i < NumTotalRegs; i++)
 	kernel->machine->WriteRegister(i, userRegisters[i]);
 }
@@ -410,14 +398,13 @@ Thread::RestoreUserState()
 //----------------------------------------------------------------------
 
 static void
-SimpleThread()
-{
+SimpleThread() {
     Thread *thread = kernel->currentThread;
     while (thread->getBurstTime() > 0) {
         thread->setBurstTime(thread->getBurstTime() - 1);
-	printf("%s: %d\n", kernel->currentThread->getName(), kernel->currentThread->getBurstTime());
+	    printf("%s: %d\n", kernel->currentThread->getName(), kernel->currentThread->getBurstTime());
         //kernel->currentThread->Yield();
-	kernel->interrupt->OneTick();
+	    kernel->interrupt->OneTick();
     }    
 }
 
@@ -428,8 +415,7 @@ SimpleThread()
 //----------------------------------------------------------------------
 
 void
-Thread::SelfTest()
-{
+Thread::SelfTest() {
     DEBUG(dbgThread, "Entering Thread::SelfTest");
     
     const int number 	 = 3;
