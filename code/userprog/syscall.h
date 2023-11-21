@@ -30,6 +30,17 @@
 #define SC_ThreadFork	9
 #define SC_ThreadYield	10
 #define SC_PrintInt	11
+#define SC_Sleep 12
+#define SC_Example 13
+
+#define SC_PtrStr 21
+
+#define SC_Add 30
+#define SC_Sub 31
+#define SC_Mul 32
+#define SC_Div 33
+#define SC_Mod 34
+
 
 #ifndef IN_ASM
 
@@ -128,6 +139,17 @@ void ThreadFork(void (*func)());
 void ThreadYield();		
 
 void PrintInt(int number);	//my System Call
+
+void Sleep(int sec);
+void Example(int number);
+
+int Add(int valR, int valL);
+int Sub(int valR, int valL);
+int Mul(int valR, int valL);
+int Div(int valR, int valL);
+int Mod(int valR, int valL);
+
+int Print(const char* valR);
 #endif /* IN_ASM */
 
 #endif /* SYSCALL_H */

@@ -10,7 +10,7 @@
 # of liability and disclaimer of warranty provisions.
 
 include ../Makefile.dep
-UNAME_P := $(shell uname -p)
+UNAME_P := $(shell uname -m)
 ifeq ($(UNAME_P),x86_64)		# Host is X86_64
 	CC=gcc
 	CFLAGS=-I../lib -I../threads $(HOST) -m32

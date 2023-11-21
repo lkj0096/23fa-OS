@@ -52,7 +52,7 @@ void
 ExceptionHandler(ExceptionType which)
 {
 	int	type = kernel->machine->ReadRegister(2);
-	int	val;
+	int	val, valR, valL, my_val = 0, strlen = 0;
 
     switch (which) {
 	case SyscallException:
@@ -73,7 +73,77 @@ ExceptionHandler(ExceptionType which)
 			val = kernel->Exec(val);
 			kernel->machine->WriteRegister(2, val);
 			return;
-*/		case SC_Exit:
+*/
+		case SC_Example:
+			val=kernel->machine->ReadRegister(4);
+			cout << "EX Value:" <<val << endl;
+			return;
+
+		case SC_Sleep:
+			val=kernel->machine->ReadRegister(4);
+			cout << "Sleep Time:" << val << "ms" << endl;
+			kernel->alarm->WaitUntil(val);
+			return;
+
+		case SC_Add:
+			valR=kernel->machine->ReadRegister(4);
+			valL=kernel->machine->ReadRegister(5);
+			// cout << "Call Add:" << valR << "+" << valL << "=" << valR + valL << endl;
+			kernel->machine->WriteRegister(2, valR + valL);
+			return;
+
+		case SC_Sub:
+			valR=kernel->machine->ReadRegister(4);
+			valL=kernel->machine->ReadRegister(5);
+			// cout << "Call Sub:" << valR << "-" << valL << "=" << valR - valL << endl;
+			kernel->machine->WriteRegister(2, valR - valL);
+			return;
+
+		case SC_Mul:
+			valR=kernel->machine->ReadRegister(4);
+			valL=kernel->machine->ReadRegister(5);
+			// cout << "Call Mul:" << valR << "*" << valL << "=" << valR * valL << endl;
+			kernel->machine->WriteRegister(2, valR * valL);
+			return;
+
+		case SC_Div:
+			valR=kernel->machine->ReadRegister(4);
+			valL=kernel->machine->ReadRegister(5);
+			if(valL == 0){
+				cout << "Error: Divide by zero" << endl;
+				kernel->machine->WriteRegister(2, 11015037);
+				return;
+			}
+			// cout << "Call Div:" << valR << "/" << valL << "=" << valR / valL << endl;
+			kernel->machine->WriteRegister(2, valR / valL);
+			return;
+
+		case SC_Mod:
+			valR=kernel->machine->ReadRegister(4);
+			valL=kernel->machine->ReadRegister(5);
+			if(valL == 0){
+				cout << "Error: Mod by zero" << endl;
+				kernel->machine->WriteRegister(2, 11015037);
+				return;
+			}
+			// cout << "Call Mod:" << valR << "%" << valL << "=" << valR % valL << endl;
+			kernel->machine->WriteRegister(2, valR % valL);
+			return;
+
+		case SC_PtrStr:
+			strlen = 0;
+			val=kernel->machine->ReadRegister(4);
+			kernel->machine->ReadMem(val++, 1, &my_val);
+			cout << "[B11015037_Print]";
+			while(my_val != 0 && val != (int)nullptr){
+				strlen++;
+				cout << ( ('A'+11 == my_val || 'a'+11 == my_val) ? '*' : (char)my_val);
+				kernel->machine->ReadMem(val++, 1, &my_val);
+			}
+			kernel->machine->WriteRegister(2, strlen);
+			return;
+
+		case SC_Exit:
 			DEBUG(dbgAddr, "Program exit\n");
 			val=kernel->machine->ReadRegister(4);
 			cout << "return value:" << val << endl;
