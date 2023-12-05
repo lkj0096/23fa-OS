@@ -25,6 +25,7 @@ class Statistics {
     int idleTicks;       	// Time spent idle (no threads to run)
     int systemTicks;	 	// Time spent executing system code
     int userTicks;       	// Time spent executing user code
+    int schdulerTicks;     // schduler timer tick time
 				// (this is also equal to # of
 				// user instructions executed)
 

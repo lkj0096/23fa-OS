@@ -32,34 +32,38 @@ int PriorityCompare(Thread *a, Thread *b) {
     return a->getPriority() > b->getPriority() ? 1 : -1;
 }
 
+int BurstCompare(Thread *a, Thread *b) {
+    if(a->getBurstTime() == b->getBurstTime())
+        return 0;
+    return a->getBurstTime() > b->getBurstTime() ? 1 : -1;
+}
+
 //----------------------------------------------------------------------
 // Scheduler::Scheduler
 // 	Initialize the list of ready but not running threads.
 //	Initially, no ready threads.
 //----------------------------------------------------------------------
 
-Scheduler::Scheduler()
-{
+Scheduler::Scheduler() {
 	Scheduler(RR);
 }
 
-Scheduler::Scheduler(SchedulerType type)
-{
+Scheduler::Scheduler(SchedulerType type) {
 	schedulerType = type;
 	switch(schedulerType) {
     	case RR:
         	readyList = new List<Thread *>;
         	break;
     	case SJF:
-		    /* todo */
+		    readyList = new SortedList<Thread *>(BurstCompare);
         	break;
     	case Priority:
 		    readyList = new SortedList<Thread *>(PriorityCompare);
         	break;
-    	case FIFO:
-            /* todo */
+    	case FCFS:
+            readyList = new List<Thread *>;
             break;
-   	}
+    }
 	toBeDestroyed = NULL;
 } 
 
@@ -68,8 +72,7 @@ Scheduler::Scheduler(SchedulerType type)
 // 	De-allocate the list of ready threads.
 //----------------------------------------------------------------------
 
-Scheduler::~Scheduler()
-{ 
+Scheduler::~Scheduler() { 
     delete readyList; 
 } 
 
@@ -81,9 +84,7 @@ Scheduler::~Scheduler()
 //	"thread" is the thread to be put on the ready list.
 //----------------------------------------------------------------------
 
-void
-Scheduler::ReadyToRun (Thread *thread)
-{
+void Scheduler::ReadyToRun (Thread *thread) {
     ASSERT(kernel->interrupt->getLevel() == IntOff);
     DEBUG(dbgThread, "Putting thread on ready list: " << thread->getName());
     
@@ -99,13 +100,11 @@ Scheduler::ReadyToRun (Thread *thread)
 //	Thread is removed from the ready list.
 //----------------------------------------------------------------------
 
-Thread *
-Scheduler::FindNextToRun ()
-{
+Thread* Scheduler::FindNextToRun () {
     ASSERT(kernel->interrupt->getLevel() == IntOff);
 
     if (readyList->IsEmpty()) {
-	return NULL;
+	    return NULL;
     } else {
     	return readyList->RemoveFront();
     }
@@ -128,9 +127,7 @@ Scheduler::FindNextToRun ()
 //		(when the next thread starts running)
 //----------------------------------------------------------------------
 
-void
-Scheduler::Run (Thread *nextThread, bool finishing)
-{
+void Scheduler::Run (Thread *nextThread, bool finishing) {
     Thread *oldThread = kernel->currentThread;
  
 //	cout << "Current Thread" <<oldThread->getName() << "    Next Thread"<<nextThread->getName()<<endl;
@@ -138,14 +135,14 @@ Scheduler::Run (Thread *nextThread, bool finishing)
     ASSERT(kernel->interrupt->getLevel() == IntOff);
 
     if (finishing) {	// mark that we need to delete current thread
-         ASSERT(toBeDestroyed == NULL);
-	 toBeDestroyed = oldThread;
+        ASSERT(toBeDestroyed == NULL);
+	    toBeDestroyed = oldThread;
     }
     
 #ifdef USER_PROGRAM			// ignore until running user programs 
     if (oldThread->space != NULL) {	// if this thread is a user program,
         oldThread->SaveUserState(); 	// save the user's CPU registers
-	oldThread->space->SaveState();
+	    oldThread->space->SaveState();
     }
 #endif
     
@@ -178,7 +175,7 @@ Scheduler::Run (Thread *nextThread, bool finishing)
 #ifdef USER_PROGRAM
     if (oldThread->space != NULL) {	    // if there is an address space
         oldThread->RestoreUserState();     // to restore, do it.
-	oldThread->space->RestoreState();
+	    oldThread->space->RestoreState();
     }
 #endif
 }
@@ -192,11 +189,10 @@ Scheduler::Run (Thread *nextThread, bool finishing)
 //----------------------------------------------------------------------
 
 void
-Scheduler::CheckToBeDestroyed()
-{
+Scheduler::CheckToBeDestroyed() {
     if (toBeDestroyed != NULL) {
         delete toBeDestroyed;
-	toBeDestroyed = NULL;
+	    toBeDestroyed = NULL;
     }
 }
  
@@ -206,8 +202,33 @@ Scheduler::CheckToBeDestroyed()
 //	the ready list.  For debugging.
 //----------------------------------------------------------------------
 void
-Scheduler::Print()
-{
+Scheduler::Print() {
     cout << "Ready list contents:\n";
     readyList->Apply(ThreadPrint);
+}
+
+bool sleepFunc::isEmpty() {
+    return T_list.size() == 0;
+}
+
+void sleepFunc::napTime(Thread *t, int x) {
+    ASSERT(kernel->interrupt->getLevel() == IntOff);
+    T_list.push_back(sleep_T(t, currentINT + x));
+    t->Sleep(false);
+}
+
+bool sleepFunc::wakeUp() {
+    bool woken = false;
+    currentINT++;
+    for(std::list<sleep_T>::iterator it = T_list.begin(); it != T_list.end();) {
+        if(currentINT >= it->when) {
+            woken = true;
+            cout << "sleepFunc::wakeUP Thread woken" << endl;
+            kernel->scheduler->ReadyToRun(it->sleepThread);
+            it = T_list.erase(it);
+        } else {
+            it++;
+        }
+    }
+    return woken;
 }

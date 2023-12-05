@@ -31,8 +31,7 @@ Debug *debug;
 //----------------------------------------------------------------------
 
 static void 
-Cleanup(int x) 
-{     
+Cleanup(int x) {     
     cerr << "\nCleaning up after signal " << x << "\n";
     delete kernel; 
 }
@@ -52,27 +51,27 @@ Cleanup(int x)
 //		ex: "nachos -d +" -> argv = {"nachos", "-d", "+"}
 //----------------------------------------------------------------------
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     int i;
     char *debugArg = "";
 
     // before anything else, initialize the debugging system
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-d") == 0) {
-	    ASSERT(i + 1 < argc);   // next argument is debug string
+            ASSERT(i + 1 < argc);   // next argument is debug string
             debugArg = argv[i + 1];
-	    i++;
-	} else if (strcmp(argv[i], "-u") == 0) {
+            i++;
+        } else if (strcmp(argv[i], "-u") == 0) {
             cout << "Partial usage: nachos [-z -d debugFlags]\n";
-	} else if (strcmp(argv[i], "-z") == 0) {
+        } else if (strcmp(argv[i], "-z") == 0) {
             cout << copyright;
-	}
+        }
     }
     debug = new Debug(debugArg);
     
     DEBUG(dbgThread, "Entering main");
+
+    DEBUG(dbgHW1, "[DEBUG]B11015037");
 
     kernel = new KernelType(argc, argv);
     kernel->Initialize();

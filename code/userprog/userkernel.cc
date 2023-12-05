@@ -18,24 +18,33 @@
 //----------------------------------------------------------------------
 
 UserProgKernel::UserProgKernel(int argc, char **argv) 
-		: ThreadedKernel(argc, argv)
-{
+		: ThreadedKernel(argc, argv) {
     debugUserProg = FALSE;
 	execfileNum=0;
     for (int i = 1; i < argc; i++) {
-			if (strcmp(argv[i], "-s") == 0) {
+		if (strcmp(argv[i], "-s") == 0) {
 			debugUserProg = TRUE;
-		}
-		else if (strcmp(argv[i], "-e") == 0) {
-			execfile[++execfileNum]= argv[i + 1];
-		}
-			else if (strcmp(argv[i], "-u") == 0) {
+		} else if (strcmp(argv[i], "-e") == 0) {
+			++execfileNum;
+			execfile[execfileNum] = argv[i + 1];
+			priority[execfileNum] = 0;
+			burst[execfileNum] = 0;
+			i+=2;
+			while(argc > i && strcmp(argv[i], "-e") != 0){
+				if (strcmp(argv[i], "-prio") == 0){
+					priority[execfileNum] = atoi(argv[i + 1]);
+				} else if (strcmp(argv[i], "-burst") == 0){
+					burst[execfileNum] = atoi(argv[i + 1]);
+				}
+				i+=2;
+			};
+			--i;
+		} else if (strcmp(argv[i], "-u") == 0) {
 			cout << "===========The following argument is defined in userkernel.cc" << endl;
 			cout << "Partial usage: nachos [-s]\n";
 			cout << "Partial usage: nachos [-u]" << endl;
 			cout << "Partial usage: nachos [-e] filename" << endl;
-		}
-		else if (strcmp(argv[i], "-h") == 0) {
+		} else if (strcmp(argv[i], "-h") == 0) {
 			cout << "argument 's' is for debugging. Machine status  will be printed " << endl;
 			cout << "argument 'e' is for execting file." << endl;
 			cout << "atgument 'u' will print all argument usage." << endl;
@@ -52,8 +61,7 @@ UserProgKernel::UserProgKernel(int argc, char **argv)
 //----------------------------------------------------------------------
 
 void
-UserProgKernel::Initialize()
-{
+UserProgKernel::Initialize() {
     ThreadedKernel::Initialize();	// init multithreading
 
     machine = new Machine(debugUserProg);
@@ -69,8 +77,7 @@ UserProgKernel::Initialize()
 //	Automatically calls destructor on base class.
 //----------------------------------------------------------------------
 
-UserProgKernel::~UserProgKernel()
-{
+UserProgKernel::~UserProgKernel() {
     delete fileSystem;
     delete machine;
 #ifdef FILESYS
@@ -82,24 +89,21 @@ UserProgKernel::~UserProgKernel()
 // UserProgKernel::Run
 // 	Run the Nachos kernel.  For now, just run the "halt" program. 
 //----------------------------------------------------------------------
-void
-ForkExecute(Thread *t)
-{
+void ForkExecute(Thread *t) {
 	t->space->Execute(t->getName());
 }
 
-void
-UserProgKernel::Run()
-{
+void UserProgKernel::Run() {
 
 	cout << "Total threads number is " << execfileNum << endl;
-	for (int n=1;n<=execfileNum;n++)
-		{
+	for (int n=1;n<=execfileNum;n++) {
 		t[n] = new Thread(execfile[n]);
+		t[n]->setPriority((this->scheduler->getSchedulerType() == Priority) ? priority[n] : 0);
+		t[n]->setBurstTime((this->scheduler->getSchedulerType() == SJF) ? burst[n] : 0);
 		t[n]->space = new AddrSpace();
 		t[n]->Fork((VoidFunctionPtr) &ForkExecute, (void *)t[n]);
 		cout << "Thread " << execfile[n] << " is executing." << endl;
-		}
+	}
 //	Thread *t1 = new Thread(execfile[1]);
 //	Thread *t1 = new Thread("../test/test1");
 //	Thread *t2 = new Thread("../test/test2");
@@ -120,8 +124,7 @@ UserProgKernel::Run()
 //      Test whether this module is working.
 //----------------------------------------------------------------------
 
-void
-UserProgKernel::SelfTest() {
+void UserProgKernel::SelfTest() {
 /*    char ch;
 
     ThreadedKernel::SelfTest();

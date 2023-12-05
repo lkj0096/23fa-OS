@@ -29,6 +29,8 @@ const char dbgFile = 'f'; 		// file system (FILESYS)
 const char dbgAddr = 'a'; 		// address spaces (USER_PROGRAM)
 const char dbgNet = 'n'; 		// network emulation (NETWORK)
 
+const char dbgHW1 = '7'; 		// only print "[DEBUG]B11015037"
+
 class Debug {
   public:
     Debug(char *flagList);

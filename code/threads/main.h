@@ -11,7 +11,7 @@
 
 #include "copyright.h"
 #include "debug.h"
-
+// #define USER_PROGRAM
 #ifdef NETWORK 	// THREADS && USER_PROGRAM && NETWORK
 #include "netkernel.h"
 #define KernelType NetKernel

@@ -1,7 +1,7 @@
 /* Start.s 
  *	Assembly language assist for user programs running on top of Nachos.
  *
- *	Since we don't want to pull in the entire C library, we define
+ *	Since we do not want to pull in the entire C library, we define
  *	what we need for a user program here, namely Start and the system
  *	calls.
  */
@@ -137,6 +137,71 @@ PrintInt:
 	syscall
 	j       $31
 	.end    PrintInt
+
+	.globl  Example
+	.ent    Example
+Example:
+	addiu   $2,$0,SC_Example
+	syscall
+	j       $31
+	.end    Example
+
+	.globl  Sleep
+	.ent    Sleep
+Sleep:
+	addiu   $2,$0,SC_Sleep
+	syscall
+	j       $31
+	.end    Sleep
+
+	.globl  Add
+	.ent    Add
+Add:
+	addiu   $2,$0,SC_Add
+	syscall
+	j       $31
+	.end Add
+
+	.globl  Sub
+	.ent    Sub
+Sub:
+	addiu   $2,$0,SC_Sub
+	syscall
+	j       $31
+	.end Add
+
+	.globl  Mul
+	.ent    Mul
+Mul:
+	addiu   $2,$0,SC_Mul
+	syscall
+	j       $31
+	.end Mul	
+
+	.globl  Div
+	.ent    Div
+Div:
+	addiu   $2,$0,SC_Div
+	syscall
+	j       $31
+	.end Div
+
+	.globl  Mod
+	.ent    Mod
+Mod:
+	addiu   $2,$0,SC_Mod
+	syscall
+	j       $31
+	.end Mod
+
+	.globl  Print
+	.ent    Print
+Print:
+	addiu   $2,$0,SC_PtrStr
+	syscall
+	j       $31
+	.end Print
+
 
 /* dummy function to keep gcc happy */
         .globl  __main
