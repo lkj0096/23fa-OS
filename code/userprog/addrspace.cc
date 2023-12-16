@@ -150,7 +150,7 @@ bool AddrSpace::Load(char *fileName) {
 	if (noffH.initData.size > 0) {
         DEBUG(dbgAddr, "Init data segment(VA, size): 0x" << noffH.initData.virtualAddr << ", 0x" << noffH.initData.size);
         executable->ReadAt(
-		&(kernel->machine->mainMemory[pageTable[noffH.initData.virtualAddr/PageSize].physicalPage * PageSize + (noffH.code.virtualAddr%PageSize)]),
+		&(kernel->machine->mainMemory[pageTable[noffH.initData.virtualAddr/PageSize].physicalPage * PageSize + (noffH.initData.virtualAddr%PageSize)]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
 
