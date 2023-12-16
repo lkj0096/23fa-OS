@@ -51,7 +51,11 @@ UserProgKernel::UserProgKernel(int argc, char **argv)
 			cout << "For example:" << endl;
 			cout << "	./nachos -s : Print machine status during the machine is on." << endl;
 			cout << "	./nachos -e file1 -e file2 : executing file1 and file2."  << endl;
-		}
+		} else if(strcmp(argv[i], "-FIFO") == 0){
+            AddrSpace::SwapMethod = FIFO;
+        } else if(strcmp(argv[i], "-LRU") == 0){
+            AddrSpace::SwapMethod = LRU;
+        }
     }
 }
 
@@ -66,8 +70,9 @@ UserProgKernel::Initialize() {
 
     machine = new Machine(debugUserProg);
     fileSystem = new FileSystem();
+	SwapDisk = new SynchDisk("new Swap Disk");
 #ifdef FILESYS
-    synchDisk = new SynchDisk("Swap Disk");
+    synchDisk = new SynchDisk("new Synch Disk");
 #endif // FILESYS
 }
 
@@ -80,6 +85,7 @@ UserProgKernel::Initialize() {
 UserProgKernel::~UserProgKernel() {
     delete fileSystem;
     delete machine;
+	delete SwapDisk;
 #ifdef FILESYS
     delete synchDisk;
 #endif

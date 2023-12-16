@@ -17,10 +17,36 @@
 #include "filesys.h"
 #include <string.h>
 
-#define UserStackSize		1024 	// increase this as necessary!
+#define UserStackSize 1024 	// increase this as necessary!
+
+enum swap_method_t {FIFO, LRU};
 
 class AddrSpace {
+    static std::queue<uint32_t> FreeFrameList;
+    static std::queue<uint32_t> FreeSectorList;
   public:
+    static swap_method_t SwapMethod;
+    static inline void PushFreeSector(uint32_t num){ FreeSectorList.push(num); }
+    static uint32_t PopFreeSector(void){ 
+        if (FreeSectorList.size() == 0) { throw std::exception(); }
+        int tmp = FreeSectorList.front();
+        FreeSectorList.pop();
+        return tmp;
+    }
+
+    static inline void PushFreeFrame(uint32_t num){ FreeFrameList.push(num); }
+    static uint32_t PopFreeFrame(void){ 
+        try {
+            if (FreeFrameList.size() == 0) { 
+                throw std::exception();
+            }
+            int tmp = FreeFrameList.front();
+            FreeFrameList.pop();
+            return tmp;
+        } catch(...){
+            throw std::exception();
+        }
+    }
     AddrSpace();			// Create an address space.
     ~AddrSpace();			// De-allocate an address space
 
@@ -33,10 +59,9 @@ class AddrSpace {
     void RestoreState();		// info on a context switch 
 
   private:
-    TranslationEntry *pageTable;	// Assume linear page table translation
-					// for now!
-    unsigned int numPages;		// Number of pages in the virtual 
-					// address space
+    TranslationEntry *pageTable;	// Assume linear page table translation for now!
+    uint32_t numPages;  // Number of pages in the virtual address space
+    uint32_t numSectors;// Number of sector in the virtual address space
 
     bool Load(char *fileName);		// Load the program into memory
 					// return false if not found

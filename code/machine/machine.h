@@ -30,7 +30,7 @@
 const unsigned int PageSize = 128; 		// set the page size equal to
 					// the disk sector size, for simplicity
 
-const unsigned int NumPhysPages = 64;
+const unsigned int NumPhysPages = 16;
 const int MemorySize = (NumPhysPages * PageSize);
 const int TLBSize = 4;			// if there is a TLB, make it small
 
@@ -130,7 +130,9 @@ class Machine {
 					// "read-only" to Nachos kernel code
 
     TranslationEntry *pageTable;
-    unsigned int pageTableSize;
+	ReverseTranslationEntry **ReverseTable;
+    
+	unsigned int pageTableSize;
     bool ReadMem(int addr, int size, int* value);
   private:
 

@@ -28,7 +28,9 @@
 //	endian machine, and we're now running on a big endian machine.
 //----------------------------------------------------------------------
 
-
+swap_method_t AddrSpace::SwapMethod = FIFO;
+queue<uint32_t> AddrSpace::FreeFrameList = {};
+queue<uint32_t> AddrSpace::FreeSectorList = {};
 bool AddrSpace::usedPhyPage[NumPhysPages] = {0};
 
 static void SwapHeader (NoffHeader *noffH) {
@@ -48,26 +50,28 @@ static void SwapHeader (NoffHeader *noffH) {
 // AddrSpace::AddrSpace
 // 	Create an address space to run a user program.
 //	Set up the translation from program memory to physical 
-//	memory.  For now, this is really simple (1:1), since we are
+//	memory.  For now, this is really simple (1:4), since we are
 //	only uniprogramming, and we have a single unsegmented page table
 //----------------------------------------------------------------------
 
 
 AddrSpace::AddrSpace() {
-    pageTable = new TranslationEntry[NumPhysPages];
-    for (unsigned int i = 0; i < NumPhysPages; i++) {
+    pageTable = new TranslationEntry[2*NumPhysPages];
+
+    for (unsigned int i = 0; i < 2*NumPhysPages; i++) {
         pageTable[i].virtualPage = i;	// for now, virt page # = phys page #
-        pageTable[i].physicalPage = i;
-    //	pageTable[i].physicalPage = 0;
-        pageTable[i].valid = TRUE;
-    //	pageTable[i].valid = FALSE;
-        pageTable[i].use = FALSE;
-        pageTable[i].dirty = FALSE;
-        pageTable[i].readOnly = FALSE;  
+        pageTable[i].physicalFrame = 0;
+        pageTable[i].diskSector = 0;
+        pageTable[i].ID = 0;
+        pageTable[i].refCount = 0;
+    	pageTable[i].valid = false;
+        pageTable[i].refed = false;
+        pageTable[i].dirty = false;
+        pageTable[i].readOnly = false;  
     }
     
     // zero out the entire address space
-//    bzero(kernel->machine->mainMemory, MemorySize);
+    bzero(kernel->machine->mainMemory, MemorySize);
 }
 
 //----------------------------------------------------------------------
@@ -76,9 +80,9 @@ AddrSpace::AddrSpace() {
 //----------------------------------------------------------------------
 
 AddrSpace::~AddrSpace() {
-   for(uint32_t i = 0; i < numPages; i++)
-        AddrSpace::usedPhyPage[pageTable[i].physicalPage] = false;
-   delete pageTable;
+    for(uint32_t i = 0; i < numPages; i++)
+        AddrSpace::usedPhyPage[pageTable[i].physicalFrame] = false;
+    delete pageTable;
 }
 
 
@@ -97,7 +101,7 @@ bool AddrSpace::Load(char *fileName) {
     NoffHeader noffH;
     unsigned int size;
 
-    cerr << std::hex;
+    ASSERT(PageSize == SectorSize);
 
     if (executable == NULL) {
         cerr << "Unable to open file " << fileName << "\n";
@@ -114,47 +118,36 @@ bool AddrSpace::Load(char *fileName) {
 			+ UserStackSize;	// we need to increase the size
 						        // to leave room for the stack
     numPages = divRoundUp(size, PageSize);
+    numSectors = divRoundUp(size, SectorSize);
     
-    DEBUG(dbgAddr, "size of " << fileName << ": 0x"<< size << "/0x" << PageSize << "=0x" << numPages);
+    DEBUG(dbgAddr, "size of " << fileName << ": 0x" << std::hex << size << "/0x" << PageSize << "=0x" << numPages << std::dec);
     
     //allocating stack area of the process
     numPages++;
+    numSectors++;
+    this->RestoreState();
 
-    for(unsigned int i=0, j=0; i<numPages; i++){
-        pageTable[i].virtualPage = i;
-        while(j<NumPhysPages && AddrSpace::usedPhyPage[j] == true)
-            j++;
-        AddrSpace::usedPhyPage[j] = true;
-        pageTable[i].physicalPage = j;
-        pageTable[i].valid = true;
-        pageTable[i].use = false;
-        pageTable[i].dirty = false;
-        pageTable[i].readOnly = false;
-        DEBUG(dbgAddr, "Page Table: 0x" << pageTable[i].virtualPage << "->0x" << pageTable[i].physicalPage);
-    }
-
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
+    ASSERT(numPages <= 2*NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
 
-    DEBUG(dbgAddr, "Initializing address space: 0x" << numPages << ", 0x" << size);
+    DEBUG(dbgAddr, "Initializing address space(in disk): 0x" << std::hex << numPages << ", 0x" << size << std::dec);
 
-// then, copy in the code and data segments into memory
+    // then, copy in the code and data segments into memory
+    char buf[128] = {0};
 	if (noffH.code.size > 0) {
-        DEBUG(dbgAddr, "Init code segment(VA, size): 0x" << noffH.code.virtualAddr << ", 0x" << noffH.code.size);
-        executable->ReadAt(
-		&(kernel->machine->mainMemory[pageTable[noffH.code.virtualAddr/PageSize].physicalPage * PageSize + (noffH.code.virtualAddr%PageSize)]), 
-			noffH.code.size, noffH.code.inFileAddr);
+        DEBUG(dbgAddr, "Init code segment(Addr, size): 0x" << std::hex << noffH.code.virtualAddr << ", 0x" << noffH.code.size << std::dec);
+        DEBUG(dbgAddr, "Init data segment(Addr, size): 0x" << std::hex << noffH.initData.virtualAddr << ", 0x" << noffH.initData.size << std::dec);
+        for (int i = 0; i < (noffH.code.size + noffH.initData.size)/SectorSize + 1; ++i){
+            bzero(buf, 128);
+            uint32_t tmp = AddrSpace::PopFreeSector();
+            pageTable[i].diskSector = tmp;
+            pageTable[i].readOnly = true;
+            executable->ReadAt(buf, SectorSize, noffH.code.inFileAddr + SectorSize * i);
+            kernel->SwapDisk->WriteSector(tmp, buf);
+        }
     }
-	if (noffH.initData.size > 0) {
-        DEBUG(dbgAddr, "Init data segment(VA, size): 0x" << noffH.initData.virtualAddr << ", 0x" << noffH.initData.size);
-        executable->ReadAt(
-		&(kernel->machine->mainMemory[pageTable[noffH.initData.virtualAddr/PageSize].physicalPage * PageSize + (noffH.initData.virtualAddr%PageSize)]),
-			noffH.initData.size, noffH.initData.inFileAddr);
-    }
-
-    cerr << std::dec;
 
     delete executable;			// close file
     return TRUE;			// success
@@ -213,8 +206,8 @@ void AddrSpace::InitRegisters() {
    // Set the stack register to the end of the address space, where we
    // allocated the stack; but subtract off a bit, to make sure we don't
    // accidentally reference off the end!
-    machine->WriteRegister(StackReg, numPages * PageSize - 16);
-    DEBUG(dbgAddr, "Initializing stack pointer: " << numPages * PageSize - 16);
+    machine->WriteRegister(StackReg, (numPages-1) * (PageSize));
+    DEBUG(dbgAddr, "Init stack pointer: 0x" << std::hex << (numPages-1) * (PageSize) << std::dec);
 }
 
 //----------------------------------------------------------------------

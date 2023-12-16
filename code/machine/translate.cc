@@ -38,7 +38,9 @@
 // simulated machine's format of little endian.  These end up
 // being NOPs when the host machine is also little endian (DEC and Intel).
 
-
+uint32_t TranslationEntry::MaxID = 1;
+uint32_t TranslationEntry::LastSwapIn = 0;
+uint32_t TranslationEntry::LastSwapOut = 0;
 
 
 unsigned int WordToHost(unsigned int word) {
@@ -138,7 +140,7 @@ bool Machine::ReadMem(int addr, int size, int *value) {
 bool Machine::WriteMem(int addr, int size, int value) {
     ExceptionType exception;
     int physicalAddress;
-     
+
     DEBUG(dbgAddr, "Writing VA 0x" << std::hex << addr << ", size 0x" << size << ", value 0x" << value << std::dec);
 
     exception = Translate(addr, &physicalAddress, size, TRUE);
@@ -189,13 +191,11 @@ ExceptionType Machine::Translate(int virtAddr, int* physAddr, int size, bool wri
     TranslationEntry *entry;
     unsigned int pageFrame;
 
-    cerr << std::hex;
-
-    DEBUG(dbgAddr, "\tTranslate 0x" << virtAddr << (writing ? " , write" : " , read"));
+    DEBUG(dbgAddr, "\tTranslate 0x" << std::hex << virtAddr << (writing ? " , write" : " , read") << std::dec);
 
 // check for alignment errors
     if (((size == 4) && (virtAddr & 0x3)) || ((size == 2) && (virtAddr & 0x1))){
-        DEBUG(dbgAddr, "Alignment problem at 0x" << virtAddr << ", size 0x" << size);
+        DEBUG(dbgAddr, "Alignment problem at 0x" << std::hex << virtAddr << ", size 0x" << size << std::dec);
         return AddressErrorException;
     }
     
@@ -210,12 +210,22 @@ ExceptionType Machine::Translate(int virtAddr, int* physAddr, int size, bool wri
     
     if (tlb == NULL) {		// => page table => vpn is index into table
         if (VirtualPageNum >= pageTableSize) {
-            DEBUG(dbgAddr, "Illegal virtual page # 0x" << virtAddr);
+            DEBUG(dbgAddr, "Illegal virtual page # 0x" << std::hex << virtAddr << std::dec);
             return AddressErrorException;
         } else if (!pageTable[VirtualPageNum].valid) {
             /* 		Add Page fault code here		*/
-
-        }
+            DEBUG(dbgAddr, "Invalid virtual page # 0x" << std::hex << virtAddr << std::dec);
+            
+            uint32_t FreeFrameNum = UINT32_MAX;
+            try{
+                FreeFrameNum = AddrSpace::PopFreeFrame();
+            } catch(...){
+                TranslationEntry* victim = TranslationEntry::FindSwapVictim();
+                DEBUG(dbgAddr, "no FreeFrame, Swapping Victim Frame# = 0x" << std::hex << victim->physicalFrame << std::dec);
+                FreeFrameNum = victim->SwapOut();
+            }
+            pageTable[VirtualPageNum].SwapIn(FreeFrameNum);
+        }    
         entry = &pageTable[VirtualPageNum];
     } else {
         for (entry = NULL, i = 0; i < TLBSize; i++){
@@ -233,26 +243,103 @@ ExceptionType Machine::Translate(int virtAddr, int* physAddr, int size, bool wri
     }
 
     if (entry->readOnly && writing) {	// trying to write to a read-only page
-        DEBUG(dbgAddr, "Write to read-only page at 0x" << virtAddr);
+        DEBUG(dbgAddr, "Write to read-only page at 0x" << std::hex << virtAddr << std::dec);
         return ReadOnlyException;
     }
-    pageFrame = entry->physicalPage;
+    pageFrame = entry->physicalFrame;
 
     // if the pageFrame is too big, there is something really wrong! 
     // An invalid translation was loaded into the page table or TLB. 
     if (pageFrame >= NumPhysPages) { 
-        DEBUG(dbgAddr, "Illegal pageframe 0x" << pageFrame);
+        DEBUG(dbgAddr, "Illegal pageframe 0x" << std::hex << pageFrame << std::dec);
         return BusErrorException;
     }
     if (writing){
 	    entry->dirty = TRUE;
     }
-    entry->use = TRUE;		// set the use, dirty bits
+    entry->refed = TRUE;    // set the use, dirty bits
+    entry->refCount++;
     *physAddr = pageFrame * PageSize + offset;
     ASSERT((*physAddr >= 0) && ((*physAddr + size) <= MemorySize));
-    DEBUG(dbgAddr, "phys addr = 0x" << *physAddr);
-    
-    cerr << std::dec;
+    DEBUG(dbgAddr, "phys addr = 0x" << std::hex << *physAddr << ", frame = 0x" << pageFrame << std::dec);
     
     return NoException;
+}
+
+TranslationEntry *TranslationEntry::FindSwapVictim(void) {
+    TranslationEntry * entry = nullptr;
+    switch (AddrSpace::SwapMethod) {
+    case FIFO: {
+        uint32_t MinID = kernel->machine->ReverseTable[0]->entry->ID;
+        entry = kernel->machine->ReverseTable[0]->entry;
+        for (int i = 1; i < NumPhysPages; ++i) {
+            if (MinID > kernel->machine->ReverseTable[i]->entry->ID){
+                MinID = kernel->machine->ReverseTable[i]->entry->ID; 
+                entry = kernel->machine->ReverseTable[i]->entry;
+            }
+        }
+        return entry;
+    }
+    case LRU: {
+        uint32_t MinRef = kernel->machine->ReverseTable[0]->entry->refCount;
+        entry = kernel->machine->ReverseTable[0]->entry;
+        for (int i = 1; i < NumPhysPages; ++i) {
+            if (MinRef > kernel->machine->ReverseTable[i]->entry->refCount){
+                MinRef = kernel->machine->ReverseTable[i]->entry->refCount; 
+                entry = kernel->machine->ReverseTable[i]->entry;
+            }
+        }
+        return entry;
+    }
+    default:
+        ASSERTNOTREACHED();
+        Abort();
+    }
+    return nullptr;
+}
+
+void TranslationEntry::SwapIn(uint32_t FrameNum) {
+    this->physicalFrame = FrameNum;
+    cout << "Swapping: Frame 0x" << std::hex << this->physicalFrame << " from Sector 0x" << this->diskSector << std::dec << endl;
+    // DEBUG(dbgAddr, "Swapping: Frame 0x" << std::hex << this->physicalFrame << " from Sector 0x" << this->diskSector << std::dec);
+    char* buf = new char[SectorSize];
+    kernel->SwapDisk->ReadSector(this->diskSector, kernel->machine->mainMemory + this->physicalFrame*PageSize);
+    kernel->machine->ReverseTable[this->physicalFrame]->entry = this;
+
+    // zero out the Sector
+    bzero(buf, SectorSize);
+    kernel->SwapDisk->WriteSector(this->diskSector, buf);
+    delete buf;
+    AddrSpace::PushFreeSector(this->diskSector);
+    
+    
+    this->diskSector = 0;
+    this->dirty = false;
+    this->valid = true;
+    this->refed = true;
+    this->ID = TranslationEntry::AssignNewID();
+    this->refCount = 1;
+}
+
+uint32_t TranslationEntry::SwapOut(void) {
+    char* buf = new char[SectorSize];
+    this->diskSector = AddrSpace::PopFreeSector();
+    cout << "Swapping: Frame 0x" << std::hex << this->physicalFrame << " to Sector 0x" << this->diskSector << std::dec << endl;
+    // DEBUG(dbgAddr, "Swapping: Frame 0x" << std::hex << this->physicalFrame << " to Sector 0x" << this->diskSector << std::dec);
+
+    kernel->SwapDisk->WriteSector(this->diskSector, kernel->machine->mainMemory + this->physicalFrame*PageSize);
+    delete buf;
+    
+    // zero out the mainmemory
+    bzero(kernel->machine->mainMemory + this->physicalFrame*PageSize, PageSize);
+    kernel->machine->ReverseTable[this->physicalFrame]->entry = nullptr;
+    AddrSpace::PushFreeFrame(this->physicalFrame);
+    
+    this->physicalFrame = 0;
+    this->dirty = false;
+    this->valid = false;
+    this->refed = false;
+    this->ID = 0;
+    this->refCount = 0;
+    return AddrSpace::PopFreeFrame();
 }

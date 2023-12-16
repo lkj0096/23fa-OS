@@ -114,21 +114,21 @@ Close:
 	j	$31
 	.end Close
 
-        .globl ThreadFork
-        .ent    ThreadFork
+	.globl ThreadFork
+	.ent    ThreadFork
 ThreadFork:
-        addiu $2,$0,SC_ThreadFork
-        syscall
-        j       $31
-        .end ThreadFork
+	addiu $2,$0,SC_ThreadFork
+	syscall
+	j       $31
+	.end ThreadFork
 
-        .globl ThreadYield
-        .ent    ThreadYield
+	.globl ThreadYield
+	.ent    ThreadYield
 ThreadYield:
-        addiu $2,$0,SC_ThreadYield
-        syscall
-        j       $31
-        .end ThreadYield
+	addiu $2,$0,SC_ThreadYield
+	syscall
+	j       $31
+	.end ThreadYield
 
 	.globl  PrintInt
 	.ent    PrintInt

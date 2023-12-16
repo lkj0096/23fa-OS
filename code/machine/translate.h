@@ -20,6 +20,8 @@
 
 #include "copyright.h"
 #include "utility.h"
+#include <cstdint>
+#include <queue>
 
 // The following class defines an entry in a translation table -- either
 // in a page table or a TLB.  Each entry defines a mapping from one 
@@ -28,18 +30,41 @@
 // read-only) and some bits for usage information (use and dirty).
 
 class TranslationEntry {
+    static uint32_t MaxID; // 0 for pages in disk
+    static uint32_t LastSwapIn;
+    static uint32_t LastSwapOut;
   public:
-    unsigned int virtualPage;  	// The page number in virtual memory.
-    unsigned int physicalPage;  // The page number in real memory (relative to the
-			//  start of "mainMemory"
-    bool valid;         // If this bit is set, the translation is ignored.
-			// (In other words, the entry hasn't been initialized.)
+    static TranslationEntry* FindSwapVictim(void);
+    static inline uint32_t AssignNewID(void) { return (!(++MaxID)) ? ++MaxID : MaxID; }
+
+    // SwapIn to MainMemory FrameNum
+    void SwapIn(uint32_t FrameNum);
+
+    // SwapOut to Disk and return Sector Number
+    uint32_t SwapOut(void);
+
+    // start of "mainMemory"
+    uint32_t virtualPage;   // The page number in virtual memory.
+    uint32_t physicalFrame;  // The page number in real memory (relative to the
+    uint32_t diskSector;     // The frame number in disk
+    uint32_t refCount;      // Use by LRU memory management
+    uint32_t ID;            // Use by FIFO memory management
+    bool valid;     // If this bit is set, the translation is ignored.
+                    // (In other words, the entry hasn't been initialized.)
     bool readOnly;	// If this bit is set, the user program is not allowed
-			// to modify the contents of the page.
-    bool use;           // This bit is set by the hardware every time the
-			// page is referenced or modified.
-    bool dirty;         // This bit is set by the hardware every time the
-			// page is modified.
+                    // to modify the contents of the page.
+    bool refed;     // This bit is set by the hardware every time the
+                    // page is referenced or modified.
+    bool dirty;     // This bit is set by the hardware every time the
+                    // page is modified.
+};
+
+class ReverseTranslationEntry{
+  public:
+    inline ReverseTranslationEntry(uint32_t PhyFrame) : entry(nullptr), physicalFrame(PhyFrame) {};
+    inline ~ReverseTranslationEntry(void) {};
+    TranslationEntry* entry;
+    uint32_t physicalFrame;
 };
 
 #endif

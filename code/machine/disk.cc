@@ -49,16 +49,16 @@ Disk::Disk(char* name, CallBackObj *toCall)
     
     fileno = OpenForReadWrite(name, FALSE);
     if (fileno >= 0) {		 	// file exists, check magic number 
-	Read(fileno, (char *) &magicNum, MagicSize);
-	ASSERT(magicNum == MagicNumber);
+        Read(fileno, (char *) &magicNum, MagicSize);
+        ASSERT(magicNum == MagicNumber);
     } else {				// file doesn't exist, create it
         fileno = OpenForWrite(name);
-	magicNum = MagicNumber;  
-	WriteFile(fileno, (char *) &magicNum, MagicSize); // write magic number
+        magicNum = MagicNumber;  
+        WriteFile(fileno, (char *) &magicNum, MagicSize); // write magic number
 
-	// need to write at end of file, so that reads will not return EOF
+    	// need to write at end of file, so that reads will not return EOF
         Lseek(fileno, DiskSize - sizeof(int), 0);	
-	WriteFile(fileno, (char *)&tmp, sizeof(int));  
+	    WriteFile(fileno, (char *)&tmp, sizeof(int));  
     }
     active = FALSE;
 }
@@ -83,15 +83,15 @@ static void
 PrintSector (bool writing, int sector, char *data)
 {
     int *p = (int *) data;
-
+    cout << std::hex;
     if (writing)
-        cout << "Writing sector: " << sector << "\n"; 
+        cout << "Writing sector: 0x" << sector << "\n"; 
     else
-        cout << "Reading sector: " << sector << "\n"; 
+        cout << "Reading sector: 0x" << sector << "\n"; 
     for (unsigned int i = 0; i < (SectorSize/sizeof(int)); i++) {
-	cout << p[i] << " ";
+	    cout << "0x" << p[i] << " ";
     }
-    cout << "\n"; 
+    cout << std::dec << "\n"; 
 }
 
 //----------------------------------------------------------------------

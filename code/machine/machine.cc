@@ -52,13 +52,20 @@ static void CheckEndian() {
 
 Machine::Machine(bool debug) {
     int i;
-
+    ReverseTable = (ReverseTranslationEntry**) new (void* [NumPhysPages]);
     for (i = 0; i < NumTotalRegs; i++) {
         registers[i] = 0;
     }
     mainMemory = new char[MemorySize];
     for (i = 0; i < MemorySize; i++) {
       	mainMemory[i] = 0;
+    }
+    for (i = 0; i < NumPhysPages; i++) {
+        AddrSpace::PushFreeFrame(i);
+        this->ReverseTable[i] = new ReverseTranslationEntry(i);
+    }
+    for (i = 1; i < NumSectors; i++){
+        AddrSpace::PushFreeSector(i);
     }
 
 #ifdef USE_TLB

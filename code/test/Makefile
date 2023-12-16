@@ -38,7 +38,7 @@ clean:
 	@/bin/bash -c "rm -rf {halt,shell,matmult,sort,test1,test2,test3,sleep}"
 	@/bin/bash -c "rm -rf *.o"
 
-all: halt shell matmult sort test1 test2 test3
+all: test1 test2 test3
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s

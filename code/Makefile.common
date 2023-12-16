@@ -164,13 +164,13 @@ switch.o: ../threads/switch.s
 	$(AS) -o switch.o swtch.s
 
 depend: $(CFILES) $(HFILES)
-	$(CC) $(INCPATH) $(DEFINES) $(HOST) -M $(CFILES) > makedep
-	echo '/^# DO NOT DELETE THIS LINE/+2,$$d' >eddep
-	echo '$$r makedep' >>eddep
-	echo 'w' >>eddep
-	echo 'q' >>eddep
-	ed - Makefile < eddep
-	rm eddep makedep 
-	echo '# DEPENDENCIES MUST END AT END OF FILE' >> Makefile
-	echo '# IF YOU PUT STUFF HERE IT WILL GO AWAY' >> Makefile
-	echo '# see make depend above' >> Makefile
+	@$(CC) $(INCPATH) $(DEFINES) $(HOST) -M $(CFILES) > makedep
+	@echo '/^# DO NOT DELETE THIS LINE/+2,$$d' >eddep
+	@echo '$$r makedep' >>eddep
+	@echo 'w' >>eddep
+	@echo 'q' >>eddep
+	@ed - Makefile < eddep
+	@rm eddep makedep 
+	@echo '# DEPENDENCIES MUST END AT END OF FILE' >> Makefile
+	@echo '# IF YOU PUT STUFF HERE IT WILL GO AWAY' >> Makefile
+	@echo '# see make depend above' >> Makefile
