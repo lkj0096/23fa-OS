@@ -31,9 +31,7 @@
 
 bool AddrSpace::usedPhyPage[NumPhysPages] = {0};
 
-static void 
-SwapHeader (NoffHeader *noffH)
-{
+static void SwapHeader (NoffHeader *noffH) {
     noffH->noffMagic = WordToHost(noffH->noffMagic);
     noffH->code.size = WordToHost(noffH->code.size);
     noffH->code.virtualAddr = WordToHost(noffH->code.virtualAddr);
@@ -55,18 +53,17 @@ SwapHeader (NoffHeader *noffH)
 //----------------------------------------------------------------------
 
 
-AddrSpace::AddrSpace()
-{
+AddrSpace::AddrSpace() {
     pageTable = new TranslationEntry[NumPhysPages];
     for (unsigned int i = 0; i < NumPhysPages; i++) {
-	pageTable[i].virtualPage = i;	// for now, virt page # = phys page #
-	pageTable[i].physicalPage = i;
-//	pageTable[i].physicalPage = 0;
-	pageTable[i].valid = TRUE;
-//	pageTable[i].valid = FALSE;
-	pageTable[i].use = FALSE;
-	pageTable[i].dirty = FALSE;
-	pageTable[i].readOnly = FALSE;  
+        pageTable[i].virtualPage = i;	// for now, virt page # = phys page #
+        pageTable[i].physicalPage = i;
+    //	pageTable[i].physicalPage = 0;
+        pageTable[i].valid = TRUE;
+    //	pageTable[i].valid = FALSE;
+        pageTable[i].use = FALSE;
+        pageTable[i].dirty = FALSE;
+        pageTable[i].readOnly = FALSE;  
     }
     
     // zero out the entire address space
@@ -78,9 +75,8 @@ AddrSpace::AddrSpace()
 // 	Dealloate an address space.
 //----------------------------------------------------------------------
 
-AddrSpace::~AddrSpace()
-{
-   for(int i = 0; i < numPages; i++)
+AddrSpace::~AddrSpace() {
+   for(uint32_t i = 0; i < numPages; i++)
         AddrSpace::usedPhyPage[pageTable[i].physicalPage] = false;
    delete pageTable;
 }
@@ -96,32 +92,34 @@ AddrSpace::~AddrSpace()
 //	"fileName" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
 
-bool 
-AddrSpace::Load(char *fileName) 
-{
+bool AddrSpace::Load(char *fileName) {
     OpenFile *executable = kernel->fileSystem->Open(fileName);
     NoffHeader noffH;
     unsigned int size;
 
+    cerr << std::hex;
+
     if (executable == NULL) {
-	cerr << "Unable to open file " << fileName << "\n";
-	return FALSE;
+        cerr << "Unable to open file " << fileName << "\n";
+        return FALSE;
     }
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
-    if ((noffH.noffMagic != NOFFMAGIC) && 
-		(WordToHost(noffH.noffMagic) == NOFFMAGIC))
+    if ((noffH.noffMagic != NOFFMAGIC) && (WordToHost(noffH.noffMagic) == NOFFMAGIC)) {
     	SwapHeader(&noffH);
+    }
     ASSERT(noffH.noffMagic == NOFFMAGIC);
 
-// how big is address space?
+    // how big is address space?
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size 
 			+ UserStackSize;	// we need to increase the size
-						// to leave room for the stack
+						        // to leave room for the stack
     numPages = divRoundUp(size, PageSize);
-//	cout << "number of pages of " << fileName<< " is "<<numPages<<endl;
-    size = numPages * PageSize;
+    
+    DEBUG(dbgAddr, "size of " << fileName << ": 0x"<< size << "/0x" << PageSize << "=0x" << numPages);
+    
+    //allocating stack area of the process
+    numPages++;
 
-    numPages = divRoundUp(size,PageSize);
     for(unsigned int i=0, j=0; i<numPages; i++){
         pageTable[i].virtualPage = i;
         while(j<NumPhysPages && AddrSpace::usedPhyPage[j] == true)
@@ -132,32 +130,31 @@ AddrSpace::Load(char *fileName)
         pageTable[i].use = false;
         pageTable[i].dirty = false;
         pageTable[i].readOnly = false;
+        DEBUG(dbgAddr, "Page Table: 0x" << pageTable[i].virtualPage << "->0x" << pageTable[i].physicalPage);
     }
-
-    size = numPages * PageSize;
 
     ASSERT(numPages <= NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
 
-    DEBUG(dbgAddr, "Initializing address space: " << numPages << ", " << size);
+    DEBUG(dbgAddr, "Initializing address space: 0x" << numPages << ", 0x" << size);
 
 // then, copy in the code and data segments into memory
 	if (noffH.code.size > 0) {
-        DEBUG(dbgAddr, "Initializing code segment.");
-	DEBUG(dbgAddr, noffH.code.virtualAddr << ", " << noffH.code.size);
-        	executable->ReadAt(
+        DEBUG(dbgAddr, "Init code segment(VA, size): 0x" << noffH.code.virtualAddr << ", 0x" << noffH.code.size);
+        executable->ReadAt(
 		&(kernel->machine->mainMemory[pageTable[noffH.code.virtualAddr/PageSize].physicalPage * PageSize + (noffH.code.virtualAddr%PageSize)]), 
 			noffH.code.size, noffH.code.inFileAddr);
     }
 	if (noffH.initData.size > 0) {
-        DEBUG(dbgAddr, "Initializing data segment.");
-	DEBUG(dbgAddr, noffH.initData.virtualAddr << ", " << noffH.initData.size);
+        DEBUG(dbgAddr, "Init data segment(VA, size): 0x" << noffH.initData.virtualAddr << ", 0x" << noffH.initData.size);
         executable->ReadAt(
 		&(kernel->machine->mainMemory[pageTable[noffH.initData.virtualAddr/PageSize].physicalPage * PageSize + (noffH.code.virtualAddr%PageSize)]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
+
+    cerr << std::dec;
 
     delete executable;			// close file
     return TRUE;			// success
@@ -171,12 +168,10 @@ AddrSpace::Load(char *fileName)
 //	"fileName" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
 
-void 
-AddrSpace::Execute(char *fileName) 
-{
+void AddrSpace::Execute(char *fileName) {
     if (!Load(fileName)) {
-	cout << "inside !Load(FileName)" << endl;
-	return;				// executable not found
+        cout << "inside !Load(FileName)" << endl;
+        return;				// executable not found
     }
 
     //kernel->currentThread->space = this;
@@ -201,15 +196,13 @@ AddrSpace::Execute(char *fileName)
 //	when this thread is context switched out.
 //----------------------------------------------------------------------
 
-void
-AddrSpace::InitRegisters()
-{
+void AddrSpace::InitRegisters() {
     Machine *machine = kernel->machine;
     int i;
 
-    for (i = 0; i < NumTotalRegs; i++)
-	machine->WriteRegister(i, 0);
-
+    for (i = 0; i < NumTotalRegs; i++) {
+	    machine->WriteRegister(i, 0);
+    }
     // Initial program counter -- must be location of "Start"
     machine->WriteRegister(PCReg, 0);	
 
@@ -232,8 +225,7 @@ AddrSpace::InitRegisters()
 //	For now, don't need to save anything!
 //----------------------------------------------------------------------
 
-void AddrSpace::SaveState() 
-{
+void AddrSpace::SaveState() {
         pageTable=kernel->machine->pageTable;
         numPages=kernel->machine->pageTableSize;
 }
@@ -246,8 +238,7 @@ void AddrSpace::SaveState()
 //      For now, tell the machine where to find the page table.
 //----------------------------------------------------------------------
 
-void AddrSpace::RestoreState() 
-{
+void AddrSpace::RestoreState() {
     kernel->machine->pageTable = pageTable;
     kernel->machine->pageTableSize = numPages;
 }

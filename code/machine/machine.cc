@@ -24,9 +24,7 @@ static char* exceptionNames[] = { "no exception", "syscall",
 //	does, for storing the bytes of an integer.  Stop on error.
 //----------------------------------------------------------------------
 
-static
-void CheckEndian()
-{
+static void CheckEndian() {
     union checkit {
         char charword[4];
         unsigned int intword;
@@ -52,15 +50,17 @@ void CheckEndian()
 //		is executed.
 //----------------------------------------------------------------------
 
-Machine::Machine(bool debug)
-{
+Machine::Machine(bool debug) {
     int i;
 
-    for (i = 0; i < NumTotalRegs; i++)
+    for (i = 0; i < NumTotalRegs; i++) {
         registers[i] = 0;
+    }
     mainMemory = new char[MemorySize];
-    for (i = 0; i < MemorySize; i++)
+    for (i = 0; i < MemorySize; i++) {
       	mainMemory[i] = 0;
+    }
+
 #ifdef USE_TLB
     tlb = new TranslationEntry[TLBSize];
     for (i = 0; i < TLBSize; i++)
@@ -80,11 +80,11 @@ Machine::Machine(bool debug)
 // 	De-allocate the data structures used to simulate user program execution.
 //----------------------------------------------------------------------
 
-Machine::~Machine()
-{
+Machine::~Machine() {
     delete [] mainMemory;
-    if (tlb != NULL)
+    if (tlb != NULL){
         delete [] tlb;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -97,9 +97,7 @@ Machine::~Machine()
 //	"badVaddr" -- the virtual address causing the trap, if appropriate
 //----------------------------------------------------------------------
 
-void
-Machine::RaiseException(ExceptionType which, int badVAddr)
-{
+void Machine::RaiseException(ExceptionType which, int badVAddr) {
     DEBUG(dbgMach, "Exception: " << exceptionNames[which]);
     
     registers[BadVAddrReg] = badVAddr;
@@ -121,8 +119,7 @@ Machine::RaiseException(ExceptionType which, int badVAddr)
 //	So just allow single-stepping, and printing the contents of memory.
 //----------------------------------------------------------------------
 
-void Machine::Debugger()
-{
+void Machine::Debugger() {
     char *buf = new char[80];
     int num;
 
@@ -130,26 +127,26 @@ void Machine::Debugger()
     DumpState();
     cout << kernel->stats->totalTicks << ">";
     cin.get(buf, 80, '\n');
-    if (sscanf(buf, "%d", &num) == 1)
-	runUntilTime = num;
-    else {
-	runUntilTime = 0;
-	switch (*buf) {
-	  case '\n':
-	    break;
-	    
-	  case 'c':
-	    singleStep = FALSE;
-	    break;
-	    
-	  case '?':
-	    cout << "Machine commands:\n";
-	    cout << "    <return>  execute one instruction\n";
-	    cout << "    <number>  run until the given timer tick\n";
-	    cout << "    c         run until completion\n";
-	    cout << "    ?         print help message\n";
-	    break;
-	}
+    if (sscanf(buf, "%d", &num) == 1) {
+	    runUntilTime = num;
+    } else {
+        runUntilTime = 0;
+        switch (*buf) {
+        case '\n':
+            break;
+            
+        case 'c':
+            singleStep = FALSE;
+            break;
+            
+        case '?':
+            cout << "Machine commands:\n";
+            cout << "    <return>  execute one instruction\n";
+            cout << "    <number>  run until the given timer tick\n";
+            cout << "    c         run until completion\n";
+            cout << "    ?         print help message\n";
+            break;
+        }
     }
     delete [] buf;
 }
@@ -160,27 +157,27 @@ void Machine::Debugger()
 //	of memory, but that seemed like overkill.
 //----------------------------------------------------------------------
 
-void
-Machine::DumpState()
-{
+void Machine::DumpState() {
     int i;
     
     cout << "Machine registers:\n";
     for (i = 0; i < NumGPRegs; i++) {
-	switch (i) {
-	  case StackReg:
-	    cout << "\tSP(" << i << "):\t" << registers[i];
-	    break;
-	    
-	  case RetAddrReg:
-	    cout << "\tRA(" << i << "):\t" << registers[i];
-	    break;
-	  
-	  default:
-	    cout << "\t" << i << ":\t" << registers[i];
-	    break;
-	}
-	if ((i % 4) == 3) { cout << "\n"; }
+        switch (i) {
+        case StackReg:
+            cout << "\tSP(" << i << "):\t" << registers[i];
+            break;
+            
+        case RetAddrReg:
+            cout << "\tRA(" << i << "):\t" << registers[i];
+            break;
+        
+        default:
+            cout << "\t" << i << ":\t" << registers[i];
+            break;
+        }
+        if ((i % 4) == 3) { 
+            cout << "\n";
+        }
     }
     
     cout << "\tHi:\t" << registers[HiReg];
@@ -197,16 +194,12 @@ Machine::DumpState()
 //   	Fetch or write the contents of a user program register.
 //----------------------------------------------------------------------
 
-int 
-Machine::ReadRegister(int num)
-{
+int Machine::ReadRegister(int num) {
     ASSERT((num >= 0) && (num < NumTotalRegs));
     return registers[num];
 }
 
-void 
-Machine::WriteRegister(int num, int value)
-{
+void Machine::WriteRegister(int num, int value) {
     ASSERT((num >= 0) && (num < NumTotalRegs));
     registers[num] = value;
 }

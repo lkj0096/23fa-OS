@@ -67,7 +67,7 @@ UserProgKernel::Initialize() {
     machine = new Machine(debugUserProg);
     fileSystem = new FileSystem();
 #ifdef FILESYS
-    synchDisk = new SynchDisk("New SynchDisk");
+    synchDisk = new SynchDisk("Swap Disk");
 #endif // FILESYS
 }
 

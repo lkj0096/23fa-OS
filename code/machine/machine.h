@@ -30,7 +30,7 @@
 const unsigned int PageSize = 128; 		// set the page size equal to
 					// the disk sector size, for simplicity
 
-const unsigned int NumPhysPages = 512;
+const unsigned int NumPhysPages = 64;
 const int MemorySize = (NumPhysPages * PageSize);
 const int TLBSize = 4;			// if there is a TLB, make it small
 
@@ -134,7 +134,7 @@ class Machine {
     bool ReadMem(int addr, int size, int* value);
   private:
 
-// Routines internal to the machine simulation -- DO NOT call these directly
+	// Routines internal to the machine simulation -- DO NOT call these directly
     void DelayedLoad(int nextReg, int nextVal);  	
 				// Do a pending delayed load (modifying a reg)
 
@@ -147,7 +147,7 @@ class Machine {
 				// memory (at addr).  Return FALSE if a 
 				// correct translation couldn't be found.
 
-    ExceptionType Translate(int virtAddr, int* physAddr, int size,bool writing);
+    ExceptionType Translate(int virtAddr, int* physAddr, int size, bool writing);
     				// Translate an address, and check for 
 				// alignment.  Set the use and dirty bits in 
 				// the translation entry appropriately,
@@ -171,7 +171,7 @@ class Machine {
     int runUntilTime;		// drop back into the debugger when simulated
 				// time reaches this value
 
- friend class Interrupt;		// calls DelayedLoad()    
+ 	friend class Interrupt;		// calls DelayedLoad()    
 };
 
 extern void ExceptionHandler(ExceptionType which);

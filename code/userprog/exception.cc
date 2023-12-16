@@ -48,9 +48,7 @@
 //	are in machine.h.
 //----------------------------------------------------------------------
 
-void
-ExceptionHandler(ExceptionType which)
-{
+void ExceptionHandler(ExceptionType which) {
 	int	type = kernel->machine->ReadRegister(2);
 	int	val, valR, valL, my_val = 0, strlen = 0;
 
@@ -155,10 +153,16 @@ ExceptionHandler(ExceptionType which)
 	    }
 	    break;
 	case PageFaultException:
-		/*    Page Fault Exception    */
+		cerr << "Page Fault" << "\n";
+	    break;
+	case AddressErrorException:
+		cerr << "address error" << "\n";
+	    break;
+	case BusErrorException:
+		cerr << "addr translation error" << "\n";
 	    break;
 	default:
-	    cerr << "Unexpected user mode exception" << which << "\n";
+	    cerr << "Unexpected user mode exception " << which << "\n";
 	    break;
     }
     ASSERTNOTREACHED();

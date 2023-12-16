@@ -116,9 +116,7 @@ Delay(int seconds)
 // 	Quit and drop core.
 //----------------------------------------------------------------------
 
-void 
-Abort()
-{
+void Abort() {
     abort();
 }
 
@@ -127,9 +125,7 @@ Abort()
 // 	Quit without dropping core.
 //----------------------------------------------------------------------
 
-void 
-Exit(int exitCode)
-{
+void Exit(int exitCode) {
     exit(exitCode);
 }
 

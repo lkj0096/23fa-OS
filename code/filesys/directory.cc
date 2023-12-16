@@ -89,9 +89,7 @@ Directory::WriteBack(OpenFile *file)
 //	"name" -- the file name to look up
 //----------------------------------------------------------------------
 
-int
-Directory::FindIndex(char *name)
-{
+int Directory::FindIndex(char *name) {
     for (int i = 0; i < tableSize; i++)
         if (table[i].inUse && !strncmp(table[i].name, name, FileNameMaxLen))
 	    return i;

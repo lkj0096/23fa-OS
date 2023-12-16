@@ -225,9 +225,7 @@ Disk::ModuloDiff(int to, int from)
 //   	a new track.
 //----------------------------------------------------------------------
 
-int
-Disk::ComputeLatency(int newSector, bool writing)
-{
+int Disk::ComputeLatency(int newSector, bool writing) {
     int rotation;
     int seek = TimeToSeek(newSector, &rotation);
     int timeAfter = kernel->stats->totalTicks + seek + rotation;
